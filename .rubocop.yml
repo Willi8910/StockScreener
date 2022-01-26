@@ -1,0 +1,24 @@
+Documentation:
+  Enabled: false
+AllCops:
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+  - 'node_modules/**/*'
+  - 'tmp/**/*'
+  - 'vendor/**/*'
+  - 'db/schema.rb'
+  - 'bin/**/*'
+  - 'config/**/*'
+  - 'db/migrate/*.rb'
+Naming/VariableNumber:
+  Enabled: false
+Metrics/BlockLength:
+  Enabled: false
+Metrics/ClassLength:
+  Enabled: false
+Naming/AccessorMethodName:
+  Enabled: false
+Lint/MissingSuper:
+  Exclude:
+    - 'app/services/**/*'
