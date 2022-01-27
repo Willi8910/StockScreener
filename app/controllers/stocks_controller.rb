@@ -6,9 +6,11 @@ class StocksController < ApplicationController
 
   # GET /stocks
   def index
+    year = StockService.new('ADES').screening
+
     @stocks = Stock.all
 
-    render json: @stocks
+    render json: year
   end
 
   # GET /stocks/1

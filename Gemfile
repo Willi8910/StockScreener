@@ -9,16 +9,18 @@ ruby '3.0.3'
 gem 'rails', '~> 7.0.1'
 
 # Use sqlite3 as the database for Active Record
+gem 'byebug'
 gem 'devise'
 gem 'devise-jwt'
 gem 'fast_jsonapi'
+gem 'ffi'
 gem 'pg'
 gem 'rack-cors'
 gem 'rubocop', '~> 1.25'
 gem 'selenium-webdriver', '~> 3.142', '>= 3.142.7'
-gem 'ffi'
 
 # Use the Puma web server [https://github.com/puma/puma]
+gem 'basic_yahoo_finance'
 gem 'puma', '~> 5.0'
 
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
