@@ -10,8 +10,16 @@ class StockService < BaseService
   end
 
   def get_stock
-    Selenium::WebDriver::Chrome.driver_path = 'C:\\chromedriver.exe'
-    @driver = Selenium::WebDriver.for :chrome
+    options = Selenium::WebDriver::Chrome::Options.new
+    if Rails.env.production?
+      Selenium::WebDriver::Chrome.path = ENV['GOOGLE_CHROME_SHIM']
+    else
+      Selenium::WebDriver::Chrome.driver_path = 'C:\\chromedriver.exe'
+    end
+    options.add_argument('--headless')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--no-sandbox')
+    @driver = Selenium::WebDriver.for :chrome, options: options
 
     stock = @stock
     link = "http://financials.morningstar.com/balance-sheet/bs.html?t=#{stock}&region=idn&culture=en-US"
@@ -73,10 +81,10 @@ class StockService < BaseService
       'cash_ratio' => { 'Cash Ratio' => cash_ratio, 'Limit' => set_limit(cash_ratio, 0.5) },
       'fcf' => { 'FCF' => fcf, 'Limit' => set_limit(fcf, 0) }
     }
-    { 'valuation' => valuation, 'price' => price, 'year' => {'year5' => year, 'year10' => year10} }
+    { 'valuation' => valuation, 'price' => price, 'year' => { 'year5' => year, 'year10' => year10 } }
   end
 
-  def calculate_fair_price()
+  def calculate_fair_price
     query = BasicYahooFinance::Query.new
     stock_info = query.quotes("#{@stock}.JK")["#{@stock}.JK"]
 
@@ -119,9 +127,9 @@ class StockService < BaseService
     bg_mos = calculate_mos(current_price, bg_fair_price)
 
     { 'Method' => ['PER Valuation', 'PBV Ratio Method', 'Benjamin Graham Formula'],
-              'Current Price' => [current_price, current_price, current_price],
-              'Fair Price' => [per_valuation_fair_price, pbv_ratio_fair_price, bg_fair_price],
-              'MOS' => [per_valuation_mos, pbv_ratio_mos, bg_mos] }
+      'Current Price' => [current_price, current_price, current_price],
+      'Fair Price' => [per_valuation_fair_price, pbv_ratio_fair_price, bg_fair_price],
+      'MOS' => [per_valuation_mos, pbv_ratio_mos, bg_mos] }
   end
 
   def financials_get_row(id)
