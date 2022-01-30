@@ -8,9 +8,7 @@ default: &default
   adapter: postgresql
   encoding: unicode
   database: stock_screener
-  pool: 5
-  username: postgres
-  password: postgres
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
 
 development:
   <<: *default
