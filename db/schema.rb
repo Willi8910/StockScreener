@@ -10,12 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2022_01_25_092844) do
+ActiveRecord::Schema.define(version: 2022_01_27_060205) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
-  create_table "stocks", force: :cascade do |t|
+  create_table "stocks", id: false, force: :cascade do |t|
+    t.bigserial "id", null: false
     t.string "name"
     t.integer "value"
     t.integer "pb_fair_value"
@@ -23,6 +24,10 @@ ActiveRecord::Schema.define(version: 2022_01_25_092844) do
     t.integer "benjamin_fair_value"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.bigint "users_id"
+    t.bigint "user_id"
+    t.index ["user_id"], name: "index_stocks_on_user_id"
+    t.index ["users_id"], name: "index_stocks_on_users_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -39,4 +44,6 @@ ActiveRecord::Schema.define(version: 2022_01_25_092844) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "stocks", "users"
+  add_foreign_key "stocks", "users", column: "users_id"
 end
