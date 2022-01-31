@@ -3,7 +3,7 @@
 class StocksController < ApplicationController
   before_action :authenticate_user!
   before_action :set_stock, only: %i[show update destroy]
-  before_action :validate_stock_params, only: %i[index]
+  before_action :validate_stock_params, only: %i[create]
 
   # GET /stocks
   def index
