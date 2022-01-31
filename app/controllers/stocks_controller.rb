@@ -7,13 +7,9 @@ class StocksController < ApplicationController
 
   # GET /stocks
   def index
-    stock_result = StockService.new(params[:stock]).screening
-    stock = current_user.stocks.create(name: params[:stock], value: stock_result['price']['Current Price'][0],
-                                       pb_fair_value: stock_result['price']['Current Price'][0],
-                                       pe_fair_value: stock_result['price']['Current Price'][1],
-                                       benjamin_fair_value: stock_result['price']['Current Price'][2])
+    @stocks = current_user.stocks
 
-    render json: stock
+    render json: @stocks
   end
 
   # GET /stocks/1
@@ -23,13 +19,13 @@ class StocksController < ApplicationController
 
   # POST /stocks
   def create
-    @stock = Stock.new(stock_params)
+    stock_result = StockService.new(params[:stock]).screening
+    @stock = current_user.stocks.create(name: params[:stock], value: stock_result['price']['Current Price'][0],
+                                       pb_fair_value: stock_result['price']['Current Price'][0],
+                                       pe_fair_value: stock_result['price']['Current Price'][1],
+                                       benjamin_fair_value: stock_result['price']['Current Price'][2])
 
-    if @stock.save
-      render json: @stock, status: :created, location: @stock
-    else
-      render json: @stock.errors, status: :unprocessable_entity
-    end
+    render json: stock_result
   end
 
   # PATCH/PUT /stocks/1
