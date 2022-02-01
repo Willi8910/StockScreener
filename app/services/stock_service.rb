@@ -82,10 +82,9 @@ class StockService < BaseService
       'cash_ratio' => { 'Cash Ratio' => cash_ratio, 'Limit' => set_limit(cash_ratio, 0.5) },
       'fcf' => { 'FCF' => fcf, 'Limit' => set_limit(fcf, 0) }
     }
-    return { 'valuation' => valuation, 'price' => price, 'year' => { 'year5' => year, 'year10' => year10 } }
-
-  rescue
-    return {'message' : 'Something wrong is happen please try again'}
+    { 'valuation' => valuation, 'price' => price, 'year' => { 'year5' => year, 'year10' => year10 } }
+  rescue StandardError
+    { message: 'Something wrong is happen please try again' }
   end
 
   def calculate_fair_price
@@ -179,7 +178,7 @@ class StockService < BaseService
 
   def find_year_10
     11.times.map { |n| @driver.find_element(id: "Y#{n}").text }
-  rescue
+  rescue StandardError
     find_year_10
   end
 end

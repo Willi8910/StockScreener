@@ -21,9 +21,9 @@ class StocksController < ApplicationController
   def create
     stock_result = StockService.new(params[:stock]).screening
     @stock = current_user.stocks.create(name: params[:stock], value: stock_result['price']['Current Price'][0],
-                                       pb_fair_value: stock_result['price']['Current Price'][0],
-                                       pe_fair_value: stock_result['price']['Current Price'][1],
-                                       benjamin_fair_value: stock_result['price']['Current Price'][2])
+                                        pb_fair_value: stock_result['price']['Current Price'][0],
+                                        pe_fair_value: stock_result['price']['Current Price'][1],
+                                        benjamin_fair_value: stock_result['price']['Current Price'][2])
 
     render json: stock_result
   end
