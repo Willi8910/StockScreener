@@ -12,7 +12,8 @@ class StockService < BaseService
   def get_stock
     options = Selenium::WebDriver::Chrome::Options.new
     if Rails.env.production?
-      Selenium::WebDriver::Chrome.path = ENV['GOOGLE_CHROME_SHIM']
+      chrome_bin_path = ENV.fetch('GOOGLE_CHROME_SHIM', nil)
+      options.binary = chrome_bin_path if chrome_bin_path
     else
       Selenium::WebDriver::Chrome.driver_path = 'C:\\chromedriver.exe'
     end
@@ -34,7 +35,7 @@ class StockService < BaseService
     @driver.navigate.to(key_ratios_link)
     # Profitability Tab
     sleep(2)
-    year10 = 11.times.map { |n| @driver.find_element(id: "Y#{n}").text }
+    year10 = find_year_10
 
     roe = ratios_get_row_by_css_selector('i26')
     revenue = ratios_get_row_by_css_selector('i0')
@@ -81,7 +82,10 @@ class StockService < BaseService
       'cash_ratio' => { 'Cash Ratio' => cash_ratio, 'Limit' => set_limit(cash_ratio, 0.5) },
       'fcf' => { 'FCF' => fcf, 'Limit' => set_limit(fcf, 0) }
     }
-    { 'valuation' => valuation, 'price' => price, 'year' => { 'year5' => year, 'year10' => year10 } }
+    return { 'valuation' => valuation, 'price' => price, 'year' => { 'year5' => year, 'year10' => year10 } }
+
+  rescue
+    return {'message' : 'Something wrong is happen please try again'}
   end
 
   def calculate_fair_price
@@ -171,5 +175,11 @@ class StockService < BaseService
 
   def calculate_mos(price, fair_price)
     (fair_price - price) / fair_price * 100
+  end
+
+  def find_year_10
+    11.times.map { |n| @driver.find_element(id: "Y#{n}").text }
+  rescue
+    find_year_10
   end
 end
