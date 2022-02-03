@@ -20,22 +20,18 @@ class StocksController < ApplicationController
   # POST /stocks
   def create
     stock_result = StockService.new(params[:stock]).screening
-    @stock = current_user.stocks.create(name: params[:stock], value: stock_result['price']['Current Price'][0],
-                                        pb_fair_value: stock_result['price']['Current Price'][0],
-                                        pe_fair_value: stock_result['price']['Current Price'][1],
-                                        benjamin_fair_value: stock_result['price']['Current Price'][2])
-
+    save_stock(stock_result)
     render json: stock_result
   end
 
-  # PATCH/PUT /stocks/1
-  def update
-    if @stock.update(stock_params)
-      render json: @stock
-    else
-      render json: @stock.errors, status: :unprocessable_entity
-    end
-  end
+  # # PATCH/PUT /stocks/1
+  # def update
+  #   if @stock.update(stock_params)
+  #     render json: @stock
+  #   else
+  #     render json: @stock.errors, status: :unprocessable_entity
+  #   end
+  # end
 
   # DELETE /stocks/1
   def destroy
@@ -58,5 +54,13 @@ class StocksController < ApplicationController
     return if params[:stock]
 
     render json: { message: 'Stock parameter is required' }, status: :bad_request
+  end
+
+  def save_stock(stock_result)
+    price_result = stock_result['price']['Fair Price']
+    @stock = current_user.stocks.create(name: params[:stock], value: stock_result['price']['Current Price'][0],
+                                        pb_fair_value: price_result[1],
+                                        pe_fair_value: price_result[0],
+                                        benjamin_fair_value: price_result[2])
   end
 end

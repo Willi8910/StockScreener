@@ -9,6 +9,7 @@ class StockService < BaseService
     get_stock
   end
 
+  # rubocop:disable Metrics
   def get_stock
     options = Selenium::WebDriver::Chrome::Options.new
     if Rails.env.production?
@@ -106,12 +107,10 @@ class StockService < BaseService
     pbv_ratio_mos = calculate_mos(current_price, pbv_ratio_fair_price)
 
     # Benjamin Graham Formula
-    # http://www.ibpa.co.id/
-    # xpath = '//*[@id="dnn_ctr504_ListGovernmentBond_gvTenor1"]/tbody/tr[12]/td[3]'
-    # http://www.worldgovernmentbonds.com/country/indonesia/#:~:text=The%20Indonesia%2010Y%20Government%20Bond,according%20to%20Standard%20%26%20Poor's%20agency.
-    # @driver.navigate.to('http://ibpa.co.id/DataPasarSuratUtang/HargadanYieldHarian/tabid/84/Default.aspx')
-    yield_obligation_government_10y = 6.492
-    # (driver.find_element(xpath: xpath).text).to_f
+    # https://www.phei.co.id/Data/HPW-dan-Imbal-Hasil
+    # IGYSC tab
+    yield_obligation_government_10y = 6.68
+    # Corporate bond tab
     yield_obligation_corporate_10y = 7.75
     growth_constant = 7
 
@@ -124,7 +123,7 @@ class StockService < BaseService
         break
       end
     end
-    eps_expected_growth_rate = (((last_eps / @eps[start_idx])**(1 / (@eps.size - 1 - start_idx))) - 1) * 100
+    eps_expected_growth_rate = (((last_eps / @eps[start_idx])**(1.to_f / (@eps.size - 1 - start_idx))) - 1) * 100
     bg_fair_price = last_eps * (growth_constant + eps_expected_growth_rate) * yield_obligation_government_10y /
                     yield_obligation_corporate_10y
     bg_mos = calculate_mos(current_price, bg_fair_price)
@@ -134,6 +133,7 @@ class StockService < BaseService
       'Fair Price' => [per_valuation_fair_price, pbv_ratio_fair_price, bg_fair_price],
       'MOS' => [per_valuation_mos, pbv_ratio_mos, bg_mos] }
   end
+  # rubocop:enable Metrics
 
   def financials_get_row(id)
     elements = @driver.find_element(id: id).find_elements(tag_name: 'div')
