@@ -53,7 +53,8 @@ class StocksController < ApplicationController
     @stock.update(value: stock_result['price']['Current Price'][0],
                   pb_fair_value: price_result[1],
                   pe_fair_value: price_result[0],
-                  benjamin_fair_value: price_result[2])
+                  benjamin_fair_value: price_result[2],
+                  chart: stock_result['valuation']['bvps']['BVPS'].join(' '))
   end
 
   def merge_attributes(quotes)
@@ -61,7 +62,8 @@ class StocksController < ApplicationController
       { name: stock.name, value: stock.value, pb_fair_value: stock.pb_fair_value,
         pe_fair_value: stock.pe_fair_value, benjamin_fair_value: stock.benjamin_fair_value,
         current_value: quotes["#{stock.name}.JK"]['regularMarketPrice'],
-        difference: calculate_difference(stock.value, quotes["#{stock.name}.JK"]['regularMarketPrice']) }
+        difference: calculate_difference(stock.value, quotes["#{stock.name}.JK"]['regularMarketPrice']),
+        chart: stock.chart.split(' ') }
     end
   end
 
