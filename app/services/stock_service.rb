@@ -84,7 +84,10 @@ class StockService < BaseService
       'fcf' => { 'FCF' => fcf, 'Limit' => set_limit(fcf, 0) }
     }
     { 'valuation' => valuation, 'price' => price, 'year' => { 'year5' => year, 'year10' => year10 } }
-  rescue StandardError
+  rescue StandardError => e
+    close_driver
+    puts e
+
     { message: 'Something wrong is happen please try again' }
   end
 
@@ -180,5 +183,11 @@ class StockService < BaseService
     11.times.map { |n| @driver.find_element(id: "Y#{n}").text }
   rescue StandardError
     find_year_10
+  end
+
+  def close_driver
+    @driver.close
+  rescue StandardError
+    puts 'driver already closed'
   end
 end

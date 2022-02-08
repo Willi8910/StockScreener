@@ -7,31 +7,22 @@ class StocksController < ApplicationController
 
   # GET /stocks
   def index
-    @stocks = current_user.stocks
+    @stocks = current_user.stocks.order(created_at: :desc)
+    stocks_name = @stocks.pluck(:name).map { |stock| "#{stock}.JK" }
+    query = BasicYahooFinance::Query.new
+    stock_info = query.quotes(stocks_name)
 
-    render json: @stocks
-  end
-
-  # GET /stocks/1
-  def show
-    render json: @stock
+    render json: merge_attributes(stock_info)
   end
 
   # POST /stocks
   def create
     stock_result = StockService.new(params[:stock]).screening
+    return render json: stock_result if stock_result.key?('message')
+
     save_stock(stock_result)
     render json: stock_result
   end
-
-  # # PATCH/PUT /stocks/1
-  # def update
-  #   if @stock.update(stock_params)
-  #     render json: @stock
-  #   else
-  #     render json: @stock.errors, status: :unprocessable_entity
-  #   end
-  # end
 
   # DELETE /stocks/1
   def destroy
@@ -58,9 +49,23 @@ class StocksController < ApplicationController
 
   def save_stock(stock_result)
     price_result = stock_result['price']['Fair Price']
-    @stock = current_user.stocks.create(name: params[:stock], value: stock_result['price']['Current Price'][0],
-                                        pb_fair_value: price_result[1],
-                                        pe_fair_value: price_result[0],
-                                        benjamin_fair_value: price_result[2])
+    @stock = current_user.stocks.find_or_create_by(name: params[:stock])
+    @stock.update(value: stock_result['price']['Current Price'][0],
+                  pb_fair_value: price_result[1],
+                  pe_fair_value: price_result[0],
+                  benjamin_fair_value: price_result[2])
+  end
+
+  def merge_attributes(quotes)
+    @stocks.map do |stock|
+      { name: stock.name, value: stock.value, pb_fair_value: stock.pb_fair_value,
+        pe_fair_value: stock.pe_fair_value, benjamin_fair_value: stock.benjamin_fair_value,
+        current_value: quotes["#{stock.name}.JK"]['regularMarketPrice'],
+        difference: calculate_difference(stock.value, quotes["#{stock.name}.JK"]['regularMarketPrice']) }
+    end
+  end
+
+  def calculate_difference(value, current_value)
+    ((current_value - value) / current_value * 100).round(2)
   end
 end
