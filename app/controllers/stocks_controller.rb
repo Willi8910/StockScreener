@@ -18,7 +18,7 @@ class StocksController < ApplicationController
   # POST /stocks
   def create
     stock_result = StockService.new(params[:stock]).screening
-    return render json: stock_result if stock_result.key?('message')
+    return render json: stock_result, status: 500 if stock_result.key?(:message)
 
     save_stock(stock_result)
     render json: stock_result
