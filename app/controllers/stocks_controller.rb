@@ -31,12 +31,10 @@ class StocksController < ApplicationController
 
   private
 
-  # Use callbacks to share common setup or constraints between actions.
   def set_stock
     @stock = Stock.find(params[:id])
   end
 
-  # Only allow a list of trusted parameters through.
   def stock_params
     params.fetch(:stock, {}).permit(:name, :value, :pb_fair_value, :pe_fair_value, :benjamin_fair_value)
   end
