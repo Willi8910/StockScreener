@@ -4,8 +4,10 @@ Stock Screener is an API to do screening for your Stock. Currently this stock sc
 There is 2 results of this screener API: financial valuation, which covers 12 financial ratio for the stock currently have, and prediction for the stock price. Prediction show from 3 algorithm: PER valuation, PBV ratio method, and Benjamin Graham formula. 
 DISCLAIMER: every result from this API only to help you decide analyzing the Stock, not by any means to promt you to buy so this is not FINANCIAL ADVICE
 
-You can usethis api directly on this link: https://stock-screener-api.herokuapp.com/
-You can find python version on this - Jupyter Notebook on this repository: https://github.com/Willi8910/Stock-Value-Scraper
+You can usethis api directly on this link: https://stock-screener-api.herokuapp.com/ </br>
+You can find python version on this - Jupyter Notebook on this repository: https://github.com/Willi8910/Stock-Value-Scraper </br>
+Implementation with React.js: https://stock-screener-ui.vercel.app/ </br>
+UI github repo: https://github.com/Willi8910/stock-screener-ui </br>
 
 ## Installation
 
