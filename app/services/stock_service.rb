@@ -84,11 +84,11 @@ class StockService < BaseService
       'fcf' => { 'FCF' => fcf, 'Limit' => set_limit(fcf, 0) }
     }
     { 'valuation' => valuation, 'price' => price, 'year' => { 'year5' => year, 'year10' => year10 } }
-  # rescue StandardError => e
-  #   close_driver
-  #   puts e
+  rescue StandardError => e
+    close_driver
+    puts e
 
-  #   { message: 'Something wrong is happen please try again' }
+    { message: 'Something wrong is happen please try again' }
   end
 
   def calculate_fair_price
@@ -188,7 +188,7 @@ class StockService < BaseService
 
   def find_year5
     financials_get_row_text('Year')
-  rescue
+  rescue StandardError
     sleep(2)
     find_year5
   end

@@ -16,17 +16,17 @@ class StocksController < ApplicationController
   end
 
   def save_favourite
-    return render json: "Stock is not exist", status: 404 if @stock.nil?
+    return render json: 'Stock is not exist', status: 404 if @stock.nil?
 
     @stock.update(favourite: true)
-    render json: "Success add new Favourite"
+    render json: 'Success add new Favourite'
   end
 
   def delete_favourite
-    return render json: "Stock is not exist", status: 404 if @stock.nil?
+    return render json: 'Stock is not exist', status: 404 if @stock.nil?
 
     @stock.update(favourite: false)
-    render json: "Success remove Favourite"
+    render json: 'Success remove Favourite'
   end
 
   # POST /stocks
@@ -75,7 +75,7 @@ class StocksController < ApplicationController
         pe_fair_value: stock.pe_fair_value, benjamin_fair_value: stock.benjamin_fair_value,
         current_value: quotes["#{stock.name}.JK"]['regularMarketPrice'],
         difference: calculate_difference(stock.value, quotes["#{stock.name}.JK"]['regularMarketPrice']),
-        chart: stock.chart.split(' '), favourite: stock.favourite }
+        chart: stock.chart.split, favourite: stock.favourite }
     end
   end
 
