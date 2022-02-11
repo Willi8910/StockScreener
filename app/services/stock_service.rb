@@ -26,7 +26,7 @@ class StockService < BaseService
     stock = @stock
     link = "http://financials.morningstar.com/balance-sheet/bs.html?t=#{stock}&region=idn&culture=en-US"
     @driver.navigate.to(link)
-    year = financials_get_row_text('Year')
+    year = find_year5
     total_liabilities = financials_get_row('data_ttg5')
     current_liabilities = financials_get_row('data_ttgg5')
     total_equity = financials_get_row('data_ttg8')
@@ -84,11 +84,11 @@ class StockService < BaseService
       'fcf' => { 'FCF' => fcf, 'Limit' => set_limit(fcf, 0) }
     }
     { 'valuation' => valuation, 'price' => price, 'year' => { 'year5' => year, 'year10' => year10 } }
-  rescue StandardError => e
-    close_driver
-    puts e
+  # rescue StandardError => e
+  #   close_driver
+  #   puts e
 
-    { message: 'Something wrong is happen please try again' }
+  #   { message: 'Something wrong is happen please try again' }
   end
 
   def calculate_fair_price
@@ -172,7 +172,7 @@ class StockService < BaseService
   end
 
   def divide_array(numerator, denominator)
-    numerator.count.times.map { |i| numerator[i] / denominator[i] }
+    numerator.count.times.map { |i| denominator[i].positive? ? numerator[i] / denominator[i] : 0 }
   end
 
   def calculate_mos(price, fair_price)
@@ -182,7 +182,15 @@ class StockService < BaseService
   def find_year_10
     11.times.map { |n| @driver.find_element(id: "Y#{n}").text }
   rescue StandardError
+    sleep(2)
     find_year_10
+  end
+
+  def find_year5
+    financials_get_row_text('Year')
+  rescue
+    sleep(2)
+    find_year5
   end
 
   def close_driver

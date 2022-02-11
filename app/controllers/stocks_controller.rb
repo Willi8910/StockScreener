@@ -2,7 +2,7 @@
 
 class StocksController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_stock, only: %i[show update destroy]
+  before_action :set_stock, only: %i[show update destroy save_favourite delete_favourite]
   before_action :validate_stock_params, only: %i[create]
 
   # GET /stocks
@@ -13,6 +13,20 @@ class StocksController < ApplicationController
     stock_info = query.quotes(stocks_name)
 
     render json: merge_attributes(stock_info)
+  end
+
+  def save_favourite
+    return render json: "Stock is not exist", status: 404 if @stock.nil?
+
+    @stock.update(favourite: true)
+    render json: "Success add new Favourite"
+  end
+
+  def delete_favourite
+    return render json: "Stock is not exist", status: 404 if @stock.nil?
+
+    @stock.update(favourite: false)
+    render json: "Success remove Favourite"
   end
 
   # POST /stocks
@@ -32,7 +46,7 @@ class StocksController < ApplicationController
   private
 
   def set_stock
-    @stock = Stock.find(params[:id])
+    @stock = Stock.find_by_id(params[:id])
   end
 
   def stock_params
@@ -61,7 +75,7 @@ class StocksController < ApplicationController
         pe_fair_value: stock.pe_fair_value, benjamin_fair_value: stock.benjamin_fair_value,
         current_value: quotes["#{stock.name}.JK"]['regularMarketPrice'],
         difference: calculate_difference(stock.value, quotes["#{stock.name}.JK"]['regularMarketPrice']),
-        chart: stock.chart.split(' ') }
+        chart: stock.chart.split(' '), favourite: stock.favourite }
     end
   end
 
