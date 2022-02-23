@@ -40,7 +40,10 @@ class StocksController < ApplicationController
 
   # DELETE /stocks/1
   def destroy
+    return render json: 'Stock is not exist', status: 404 if @stock.nil?
+
     @stock.destroy
+    render json: 'Success remove Stock'
   end
 
   private
@@ -75,7 +78,7 @@ class StocksController < ApplicationController
         pe_fair_value: stock.pe_fair_value, benjamin_fair_value: stock.benjamin_fair_value,
         current_value: quotes["#{stock.name}.JK"]['regularMarketPrice'],
         difference: calculate_difference(stock.value, quotes["#{stock.name}.JK"]['regularMarketPrice']),
-        chart: stock.chart.split, favourite: stock.favourite }
+        chart: stock.chart.split, favourite: stock.favourite, id: stock.id }
     end
   end
 
