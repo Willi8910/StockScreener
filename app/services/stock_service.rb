@@ -101,12 +101,14 @@ class StockService < BaseService
     mean_per_ttm = @pe.sum(0.0) / @pe.size
     eps_ttm = @eps[-1]
     per_valuation_fair_price = mean_per_ttm * eps_ttm
+    per_valuation_fair_price = validate_price(per_valuation_fair_price)
     per_valuation_mos = calculate_mos(current_price, per_valuation_fair_price)
 
     # PBV Ratio Method
     current_bvps = stock_info['bookValue']
     mean_pbv = @pbv.sum(0.0) / @pbv.size
     pbv_ratio_fair_price = current_bvps * mean_pbv
+    pbv_ratio_fair_price = validate_price(pbv_ratio_fair_price)
     pbv_ratio_mos = calculate_mos(current_price, pbv_ratio_fair_price)
 
     # Benjamin Graham Formula
@@ -127,8 +129,9 @@ class StockService < BaseService
       end
     end
     eps_expected_growth_rate = (((last_eps / @eps[start_idx])**(1.to_f / (@eps.size - 1 - start_idx))) - 1) * 100
-    bg_fair_price = last_eps * (growth_constant + eps_expected_growth_rate) * yield_obligation_government_10y /
+    bg_fair_price = last_eps.to_f * (growth_constant + eps_expected_growth_rate) * yield_obligation_government_10y /
                     yield_obligation_corporate_10y
+    bg_fair_price = validate_price(bg_fair_price)
     bg_mos = calculate_mos(current_price, bg_fair_price)
 
     { 'Method' => ['PER Valuation', 'PBV Ratio Method', 'Benjamin Graham Formula'],
@@ -176,7 +179,15 @@ class StockService < BaseService
   end
 
   def calculate_mos(price, fair_price)
-    (fair_price - price) / fair_price * 100
+    return (fair_price - price) / fair_price * 100 if fair_price > price
+
+    0
+  end
+
+  def validate_price(price)
+    return 0 if price.infinite? || price.nan? || price.negative?
+
+    price
   end
 
   def find_year_10
