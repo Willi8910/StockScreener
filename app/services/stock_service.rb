@@ -1,12 +1,33 @@
 # frozen_string_literal: true
 
 class StockService < BaseService
-  def initialize(stock)
+  def initialize(stock, data = nil)
     @stock = stock
+    @data = data
   end
 
   def screening
     get_stock
+  end
+
+  def update_history
+    query = BasicYahooFinance::Query.new
+    stock_info = query.quotes("#{@stock}.JK")["#{@stock}.JK"]
+    current_price = stock_info['regularMarketPrice']
+
+    stock_result = JSON[@data]
+    stock_result['price']['Current Price'] = [current_price, current_price, current_price]
+
+    fair_prices = stock_result['price']['Fair Price']
+    per_valuation_mos = calculate_mos(current_price, fair_prices[0])
+    pbv_ratio_mos = calculate_mos(current_price, fair_prices[1])
+    bg_ratio_mos = calculate_mos(current_price, fair_prices[2])
+
+    stock_result['price']['MOS'] = [per_valuation_mos, pbv_ratio_mos, bg_ratio_mos]
+
+    stock_result
+  rescue StandardError
+    { message: 'Something wrong is happen please try again' }
   end
 
   # rubocop:disable Metrics
@@ -26,6 +47,9 @@ class StockService < BaseService
     stock = @stock
     link = "http://financials.morningstar.com/balance-sheet/bs.html?t=#{stock}&region=idn&culture=en-US"
     @driver.navigate.to(link)
+
+    raise ArgumentError, 'Stock does not exist' if @driver.find_elements(class_name: 'error__message').count.positive?
+
     year = find_year5
     total_liabilities = financials_get_row('data_ttg5')
     current_liabilities = financials_get_row('data_ttgg5')
@@ -84,6 +108,10 @@ class StockService < BaseService
       'fcf' => { 'FCF' => fcf, 'Limit' => set_limit(fcf, 0) }
     }
     { 'valuation' => valuation, 'price' => price, 'year' => { 'year5' => year, 'year10' => year10 } }
+  rescue ArgumentError => e
+    close_driver
+
+    { message: e.message }
   rescue StandardError => e
     close_driver
     puts e

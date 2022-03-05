@@ -31,8 +31,24 @@ class StocksController < ApplicationController
 
   # POST /stocks
   def create
-    stock_result = StockService.new(params[:stock]).screening
-    return render json: stock_result, status: 500 if stock_result.key?(:message)
+    @history = History.find_by(name: params[:stock])
+    if @history.nil?
+      stock_result = StockService.new(params[:stock]).screening
+      return render json: stock_result, status: 500 if stock_result.key?(:message)
+
+      save_new_history(stock_result)
+    elsif compare_month
+      stock_result = StockService.new(params[:stock]).screening
+      return render json: stock_result, status: 500 if stock_result.key?(:message)
+
+      @history.update(data: JSON[stock_result], search_count: @history.search_count + 1, search_monthly: 1)
+    else
+      stock_result = StockService.new(params[:stock], @history.data).update_history
+      return render json: stock_result, status: 500 if stock_result.key?(:message)
+
+      @history.update(data: JSON[stock_result], search_count: @history.search_count + 1,
+                      search_monthly: @history.search_monthly + 1)
+    end
 
     save_stock(stock_result)
     render json: stock_result
@@ -62,6 +78,13 @@ class StocksController < ApplicationController
     render json: { message: 'Stock parameter is required' }, status: :bad_request
   end
 
+  def compare_month
+    Time.new(@history.updated_at.strftime('%Y'),
+             @history.updated_at.strftime('%m')) != Time.new(Time.now.strftime('%Y'), Time.now.strftime('%m'))
+  end
+
+  def update_regular_price; end
+
   def save_stock(stock_result)
     price_result = stock_result['price']['Fair Price']
     @stock = current_user.stocks.find_or_create_by(name: params[:stock])
@@ -70,6 +93,10 @@ class StocksController < ApplicationController
                   pe_fair_value: price_result[0],
                   benjamin_fair_value: price_result[2],
                   chart: stock_result['valuation']['bvps']['BVPS'].join(' '))
+  end
+
+  def save_new_history(stock_result)
+    History.create(name: params[:stock], data: JSON[stock_result])
   end
 
   def merge_attributes(quotes)
