@@ -43,6 +43,7 @@ class StockService < BaseService
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--no-sandbox')
     @driver = Selenium::WebDriver.for :chrome, options: options
+    @wait = Selenium::WebDriver::Wait.new(timeout: 15)
 
     stock = @stock
     link = "http://financials.morningstar.com/balance-sheet/bs.html?t=#{stock}&region=idn&culture=en-US"
@@ -93,19 +94,19 @@ class StockService < BaseService
     @driver.close
 
     valuation = {
-      'de' => { 'D / E' => debt_per_equity, 'Limit' => set_limit(debt_per_equity, 0.5) },
+      'de' => { 'D / E' => debt_per_equity, 'Limit Top' => set_limit(debt_per_equity, 0.5) },
       'cr' => { 'Current Ratio' => current_ratio, 'Limit Top' => set_limit(current_ratio, 1.5),
                 'Limit Bottom' => set_limit(current_ratio, 2.5) },
-      'roe' => { 'ROE' => roe, 'Limit' => set_limit(roe, 8) },
+      'roe' => { 'ROE' => roe, 'Limit Bottom' => set_limit(roe, 8) },
       'bvps' => { 'BVPS' => bvps },
       'dividend' => { 'Dividend' => dividend },
       'eps' => { 'EPS' => @eps },
-      'per' => { 'PER' => @pe, 'Limit' => set_limit(@pe, 15) },
-      'pbv' => { 'PBV' => @pbv, 'Limit' => set_limit(@pbv, 1.5) },
-      'npm' => { 'NPM' => npm, 'Limit' => set_limit(npm, 8) },
-      'capex' => { 'CAPEX' => cap_ex_ratio, 'Limit' => set_limit(cap_ex_ratio, 20) },
-      'cash_ratio' => { 'Cash Ratio' => cash_ratio, 'Limit' => set_limit(cash_ratio, 0.5) },
-      'fcf' => { 'FCF' => fcf, 'Limit' => set_limit(fcf, 0) }
+      'per' => { 'PER' => @pe, 'Limit Top' => set_limit(@pe, 15) },
+      'pbv' => { 'PBV' => @pbv, 'Limit Top' => set_limit(@pbv, 1.5) },
+      'npm' => { 'NPM' => npm, 'Limit Bottom' => set_limit(npm, 8) },
+      'capex' => { 'CAPEX' => cap_ex_ratio, 'Limit Top' => set_limit(cap_ex_ratio, 20) },
+      'cash_ratio' => { 'Cash Ratio' => cash_ratio, 'Limit Bottom' => set_limit(cash_ratio, 0.5) },
+      'fcf' => { 'FCF' => fcf, 'Limit Bottom' => set_limit(fcf, 0) }
     }
     { 'valuation' => valuation, 'price' => price, 'year' => { 'year5' => year, 'year10' => year10 } }
   rescue ArgumentError => e
@@ -142,9 +143,21 @@ class StockService < BaseService
     # Benjamin Graham Formula
     # https://www.phei.co.id/Data/HPW-dan-Imbal-Hasil
     # IGYSC tab
-    yield_obligation_government_10y = 6.68
+    phei_link = 'https://www.phei.co.id/Data/HPW-dan-Imbal-Hasil'
+    @driver.navigate.to(phei_link)
+    @wait.until { @driver.find_element(id: 'dnn_ctr1477_GovernmentBondBenchmark_gvTenor1') }
+    yield_obligation_government_10y = @driver.find_element(id: 'dnn_ctr1477_GovernmentBondBenchmark_gvTenor1').find_elements(tag_name: 'tr')[11].find_elements(tag_name: 'td')[1].text.gsub(
+      ',', ''
+    ).to_f
+
     # Corporate bond tab
-    yield_obligation_corporate_10y = 7.75
+    corporate_bond_link = 'https://www.phei.co.id/Data/HPW-dan-Imbal-Hasil#YieldByTenor'
+    @driver.navigate.to(corporate_bond_link)
+    @driver.find_element(xpath: '//*[@id="ui-id-3"]').click
+    @wait.until { @driver.find_element(id: 'dnn_ctr1477_GovernmentBondBenchmark_gvCSM') }
+    yield_obligation_corporate_10y = @driver.find_element(id: 'dnn_ctr1477_GovernmentBondBenchmark_gvCSM').find_elements(tag_name: 'tr')[11].find_elements(tag_name: 'td')[3].text.gsub(
+      ',', ''
+    ).to_f
     growth_constant = 7
 
     # Calculate EPS expected Growth Rate
