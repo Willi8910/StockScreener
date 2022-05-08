@@ -95,8 +95,8 @@ class StockService < BaseService
 
     valuation = {
       'de' => { 'D / E' => debt_per_equity, 'Limit Top' => set_limit(debt_per_equity, 0.5) },
-      'cr' => { 'Current Ratio' => current_ratio, 'Limit Top' => set_limit(current_ratio, 1.5),
-                'Limit Bottom' => set_limit(current_ratio, 2.5) },
+      'cr' => { 'Current Ratio' => current_ratio, 'Limit Bottom' => set_limit(current_ratio, 1.5),
+                'Limit Top' => set_limit(current_ratio, 2.5) },
       'roe' => { 'ROE' => roe, 'Limit Bottom' => set_limit(roe, 8) },
       'bvps' => { 'BVPS' => bvps },
       'dividend' => { 'Dividend' => dividend },
