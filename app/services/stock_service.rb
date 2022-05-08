@@ -226,7 +226,7 @@ class StockService < BaseService
   end
 
   def validate_price(price)
-    return 0 if price.infinite? || price.nan? || price.negative?
+    return 0 if price.infinite? || price.instance_of?(Complex) || price.nan? || price.negative?
 
     price
   end
