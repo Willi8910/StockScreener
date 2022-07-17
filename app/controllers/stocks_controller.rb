@@ -31,28 +31,45 @@ class StocksController < ApplicationController
 
   # POST /stocks
   def create
-    @history = History.find_by(name: params[:stock])
-    if @history.nil?
-      stock_result = StockService.new(params[:stock]).screening
-      return render json: stock_result, status: 500 if stock_result.key?(:message)
 
-      save_new_history(stock_result)
-    elsif compare_month
-      stock_result = StockService.new(params[:stock]).screening
-      return render json: stock_result, status: 500 if stock_result.key?(:message)
-
-      @history.update(data: JSON[stock_result], search_count: @history.search_count + 1, search_monthly: 1)
-    else
-      stock_result = StockService.new(params[:stock], @history.data).update_history
-      return render json: stock_result, status: 500 if stock_result.key?(:message)
-
-      @history.update(data: JSON[stock_result], search_count: @history.search_count + 1,
-                      search_monthly: @history.search_monthly + 1)
-    end
-
-    save_stock(stock_result)
+    stock_result = History.where.not(data: nil).where(name: params[:stock]).first
+    return render json: 'Stock is not exist', status: 404 if stock_result.nil?
+    
+    save_stock(JSON[stock_result.data])
     render json: stock_result
   end
+
+  def update
+    if @stock.update(stock_params)
+      return render json: stock_result
+    else
+      return render json: 'Something wrong is happened, please try again', status: 422
+    end
+  end
+
+  # def create
+  #   @history = History.find_by(name: params[:stock])
+  #   if @history.nil?
+  #     stock_result = StockService.new(params[:stock]).screening
+  #     return render json: stock_result, status: 500 if stock_result.key?(:message)
+
+  #     save_new_history(stock_result)
+  #   elsif compare_month
+  #     stock_result = StockService.new(params[:stock]).screening
+  #     return render json: stock_result, status: 500 if stock_result.key?(:message)
+
+  #     @history.update(data: JSON[stock_result], search_count: @history.search_count + 1, search_monthly: 1)
+  #   else
+  #     stock_result = StockService.new(params[:stock], @history.data).update_history
+  #     return render json: stock_result, status: 500 if stock_result.key?(:message)
+
+  #     @history.update(data: JSON[stock_result], search_count: @history.search_count + 1,
+  #                     search_monthly: @history.search_monthly + 1)
+  #   end
+
+  #   save_stock(stock_result)
+  #   render json: stock_result
+  # end
 
   # DELETE /stocks/1
   def destroy
@@ -88,8 +105,8 @@ class StocksController < ApplicationController
   def save_stock(stock_result)
     price_result = stock_result['price']['Fair Price']
     @stock = current_user.stocks.find_or_create_by(name: params[:stock])
-    @stock.update(value: stock_result['price']['Current Price'][0],
-                  pb_fair_value: price_result[1],
+    @stock.value = stock_result['price']['Current Price'][0] if @stock.new_record?
+    @stock.update(pb_fair_value: price_result[1],
                   pe_fair_value: price_result[0],
                   benjamin_fair_value: price_result[2],
                   chart: stock_result['valuation']['bvps']['BVPS'].join(' '))

@@ -10,10 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2022_03_05_065656) do
+ActiveRecord::Schema.define(version: 2022_07_16_055710) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "external_services", force: :cascade do |t|
+    t.string "name"
+    t.string "access_token"
+    t.datetime "last_update_access_token", precision: 6
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.integer "yog"
+    t.integer "yoc"
+    t.datetime "obligation_last_updated", precision: 6
+  end
 
   create_table "histories", force: :cascade do |t|
     t.string "name"
@@ -22,6 +33,9 @@ ActiveRecord::Schema.define(version: 2022_03_05_065656) do
     t.integer "search_monthly", default: 1
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.integer "cid"
+    t.integer "tid"
+    t.string "full_name"
   end
 
   create_table "stocks", force: :cascade do |t|
