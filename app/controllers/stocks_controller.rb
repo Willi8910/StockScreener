@@ -36,7 +36,7 @@ class StocksController < ApplicationController
     return render json: 'Stock is not exist', status: 404 if stock_result.nil?
     
     save_stock(JSON[stock_result.data])
-    render json: stock_result
+    render json: JSON[stock_result.data]
   end
 
   def update
