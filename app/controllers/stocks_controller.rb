@@ -40,8 +40,8 @@ class StocksController < ApplicationController
   end
 
   def update
-    if @stock.update(stock_params)
-      return render json: stock_result
+    if @stock.update(value: params[:value])
+      return render json: "Successfully update stock"
     else
       return render json: 'Something wrong is happened, please try again', status: 422
     end
