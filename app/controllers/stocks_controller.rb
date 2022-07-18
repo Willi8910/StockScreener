@@ -105,8 +105,9 @@ class StocksController < ApplicationController
   def save_stock(stock_result)
     price_result = stock_result['price']['Fair Price']
     @stock = current_user.stocks.find_or_create_by(name: params[:stock])
-    @stock.value = stock_result['price']['Current Price'][0] if @stock.new_record?
-    @stock.update(pb_fair_value: price_result[1],
+    value = @stock.previously_new_record? ? stock_result['price']['Current Price'][0] : @stock.value
+    byebug
+    @stock.update(value: value, pb_fair_value: price_result[1],
                   pe_fair_value: price_result[0],
                   benjamin_fair_value: price_result[2],
                   chart: stock_result['valuation']['bvps']['BVPS'].join(' '))
