@@ -40,4 +40,23 @@ class YahooStockService < BaseService
 
     @prices
   end
+
+  def self.get_curret_stock_prices(stocks)
+    res = {}
+
+    stock_params = stocks.map { |s| "#{s}.JK"}
+    stock_params.each_slice(20).each do |params|
+      url = "https://query1.finance.yahoo.com/v7/finance/spark?symbols=#{params.join(',')}&range=1d&Domain=finance.yahoo.com"
+      response = HTTParty.get(url, { headers: { 'User-Agent' => 'Google Chrome' } })
+      raise ArgumentError, "Stocks data is not found" if response.not_found?
+      raise StandardError, 'Fail to fetch Yahoo data' unless response.ok?
+  
+      datas = response.parsed_response['spark']['result']
+      datas.each do |stock|
+        res[stock['symbol']] = stock['response'].first['meta']['regularMarketPrice']
+      end
+    end
+
+    res
+  end
 end

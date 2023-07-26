@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2022_07_16_055710) do
+ActiveRecord::Schema.define(version: 2023_07_22_072345) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -36,6 +36,14 @@ ActiveRecord::Schema.define(version: 2022_07_16_055710) do
     t.integer "cid"
     t.integer "tid"
     t.string "full_name"
+  end
+
+  create_table "stock_recommends", force: :cascade do |t|
+    t.bigint "history_id"
+    t.decimal "rating"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["history_id"], name: "index_stock_recommends_on_history_id"
   end
 
   create_table "stocks", force: :cascade do |t|

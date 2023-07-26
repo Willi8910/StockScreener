@@ -6,6 +6,11 @@ class StockServiceV2 < BaseService
     @data = data
   end
 
+  def get_prices
+    setup_year
+    YahooStockService.get_yahoo_hystorical_price(@stock, @year)
+  end
+
   def get_bei_stock_list
     configure_driver
     @driver.navigate.to('https://idx.co.id/perusahaan-tercatat/profil-perusahaan-tercatat/detail-profile-perusahaan-tercatat/?kodeEmiten=ABMM')
@@ -52,7 +57,7 @@ class StockServiceV2 < BaseService
     end
 
     setup_year
-    History.where(data: nil).where.not(cid: nil, tid: nil).each do |history|
+    History.where.not(cid: nil, tid: nil).each do |history|
       begin
         @stock = history.name
         @history = history
@@ -83,15 +88,15 @@ class StockServiceV2 < BaseService
       end
     end
     @driver.close
-  rescue ArgumentError => e
-    close_driver
+  # rescue ArgumentError => e
+  #   close_driver
 
-    { message: e.message }
-  rescue StandardError => e
-    close_driver
-    puts e
+  #   { message: e.message }
+  # rescue StandardError => e
+  #   close_driver
+  #   puts e
 
-    { message: 'Something wrong is happen please try again' }
+  #   { message: 'Something wrong is happen please try again' }
   end
 
   def perform
@@ -136,18 +141,23 @@ class StockServiceV2 < BaseService
 
   def setup_financial_tikr
     @fin = TikrStockService.new(@stock, @history.cid, @history.tid, @service.access_token).get_financial
-    @current_ratio, @roe, @bvps, 
-    @dividend, @net_income, @total_stock, @total_liabilities, 
+
+    # perlu update:
+    # - capex ratio: operating cashflow / capex
+    # 
+    @current_ratio, @roe, @de,
+    @net_income, @total_stock, @total_liabilities, 
     @total_equities, @npm, @total_cash_equivalents,
     @current_liabilities, @cash_from_investing, @capex,
-    @cash_from_operation = *@fin.values
+    @cash_from_operation, @bvps, @eps, @dividend = *@fin.values
 
-    @de = divide_array(@total_liabilities, @total_equities)
-    @eps = divide_array(@net_income, @total_stock)
+    # @de = divide_array(@total_liabilities, @total_equities)
+    @eps = clean_array_tikr(@eps)
+    @de = clean_array_tikr(@de)
     @per = divide_array(@prices, @eps)
     @pbv = divide_array(@prices, @bvps)
-    @dividend = @dividend.map { |x| x*-1} unless @dividend.blank?
-    @cap_ex_ratio = divide_array(@capex, @cash_from_investing)
+    @dividend_yield = divide_array(@dividend, @prices).map { |item| item * 100}
+    @cap_ex_ratio = normalize_zero(divide_array(@capex, @cash_from_investing).map { |item| item * 100})
     @cash_ratio = divide_array(@total_cash_equivalents, @current_liabilities)
     @fcf = addition_array(@capex, @cash_from_operation)
   end
@@ -160,6 +170,7 @@ class StockServiceV2 < BaseService
       'roe' => { 'ROE' => @roe, 'Limit Bottom' => set_limit(@roe, 8) },
       'bvps' => { 'BVPS' => @bvps },
       'dividend' => { 'Dividend' => @dividend },
+      'dividend_yield' => { 'Dividend Yield' => @dividend_yield },
       'eps' => { 'EPS' => @eps },
       'per' => { 'PER' => @per, 'Limit Top' => set_limit(@per, 15) },
       'pbv' => { 'PBV' => @pbv, 'Limit Top' => set_limit(@pbv, 1.5) },
@@ -174,21 +185,31 @@ class StockServiceV2 < BaseService
     query = BasicYahooFinance::Query.new
     stock_info = query.quotes("#{@stock}.JK")["#{@stock}.JK"]
 
-    current_price = stock_info['regularMarketPrice']
+    current_price = @prices.last
 
     # PER Valuation
     mean_per_ttm = @per.sum(0.0) / @per.size
     eps_ttm = @eps[-1]
-    per_valuation_fair_price = mean_per_ttm * eps_ttm
-    per_valuation_fair_price = validate_price(per_valuation_fair_price)
-    per_valuation_mos = calculate_mos(current_price, per_valuation_fair_price)
+    if eps_ttm < 0 
+      per_valuation_fair_price = 0
+      per_valuation_mos = 0
+    else
+      per_valuation_fair_price = mean_per_ttm * eps_ttm
+      per_valuation_fair_price = validate_price(per_valuation_fair_price)
+      per_valuation_mos = calculate_mos(current_price, per_valuation_fair_price)
+    end
 
     # PBV Ratio Method
-    current_bvps = stock_info['bookValue']
+    current_bvps = @bvps.last
     mean_pbv = @pbv.sum(0.0) / @pbv.size
-    pbv_ratio_fair_price = current_bvps * mean_pbv
-    pbv_ratio_fair_price = validate_price(pbv_ratio_fair_price)
-    pbv_ratio_mos = calculate_mos(current_price, pbv_ratio_fair_price)
+    if mean_pbv < 0
+      pbv_ratio_fair_price = 0
+      pbv_ratio_mos = 0
+    else
+      pbv_ratio_fair_price = current_bvps * mean_pbv
+      pbv_ratio_fair_price = validate_price(pbv_ratio_fair_price)
+      pbv_ratio_mos = calculate_mos(current_price, pbv_ratio_fair_price)
+    end
 
     # Benjamin Graham Formula
     growth_constant = 7
@@ -220,7 +241,7 @@ class StockServiceV2 < BaseService
     # Calculate EPS expected Growth Rate
     start_idx = 0
     last_eps = @eps[-2]
-    if last_eps.present?
+    if last_eps.present? && last_eps > 0
       @eps.count.times.each do |i|
         if (@eps[i]).positive?
           start_idx = i
@@ -228,7 +249,7 @@ class StockServiceV2 < BaseService
         end
       end
       eps_expected_growth_rate = (((last_eps / @eps[start_idx])**(1.to_f / (@eps.size - 1 - start_idx))) - 1) * 100
-      bg_fair_price = last_eps.to_f * (growth_constant + eps_expected_growth_rate) * yield_obligation_government_10y /
+      bg_fair_price = last_eps.to_f * (growth_constant + eps_expected_growth_rate) * yield_obligation_government_10y / 
                       yield_obligation_corporate_10y
       bg_fair_price = validate_price(bg_fair_price)
       
@@ -244,18 +265,18 @@ class StockServiceV2 < BaseService
   end
 
   def configure_driver
+    # if Rails.env.production?
+    #   chrome_bin_path = ENV.fetch('GOOGLE_CHROME_SHIM', nil)
+    #   options.binary = chrome_bin_path if chrome_bin_path
+    # else
+    # end
+    # options.add_argument('--headless')
+    # options.add_argument('--disable-dev-shm-usage')
+    # options.add_argument('--no-sandbox')
     options = Selenium::WebDriver::Chrome::Options.new
-    if Rails.env.production?
-      chrome_bin_path = ENV.fetch('GOOGLE_CHROME_SHIM', nil)
-      options.binary = chrome_bin_path if chrome_bin_path
-    else
-      Selenium::WebDriver::Chrome.driver_path = '/Users/williamlie/Downloads/chromedriver'
-    end
-    options.add_argument('--headless')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--no-sandbox')
+    Selenium::WebDriver::Chrome.driver_path = '/Users/williamlie/Downloads/chromedriver'
     @driver = Selenium::WebDriver.for :chrome, options: options
-    @wait = Selenium::WebDriver::Wait.new(timeout: 15)
+    @wait = Selenium::WebDriver::Wait.new(timeout: 60)
   end
 
   def scrape_tikr
@@ -296,6 +317,19 @@ class StockServiceV2 < BaseService
     return 0 if price.infinite? || price.instance_of?(Complex) || price.nan? || price.negative?
 
     price
+  end
+
+  def normalize_zero(array)
+    array.map { |item| item > 0 ? item : 0 }
+  end
+
+  def clean_array_tikr(array)
+    res = []
+    array.each do |item|
+      res << item if item != 1.11
+    end
+
+    res
   end
 
   def close_driver

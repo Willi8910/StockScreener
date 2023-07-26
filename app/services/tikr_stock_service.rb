@@ -23,16 +23,51 @@ class TikrStockService < BaseService
     financial_data.each do |data|
       res[data['dataitemid']] << data['dataitemvalue'].to_f if ids.include?(data['dataitemid'])
     end
-    data_items.map { |item, value| {item => res[value].length > 10 ? res[value][-11, 11] : res[value]} }.reduce(:merge)
+    result = data_items.map { |item, value| {item => res[value].length > 10 ? res[value][-11, 11] : res[value]} }.reduce(:merge)
+    result.merge(get_daily_fin)
+  end
+
+  def get_daily_fin
+    url = 'https://oljizlzlsa.execute-api.us-east-1.amazonaws.com/prod/daily'
+    response = HTTParty.post(url, { 
+      headers: request_headers, 
+      body: request_params_daily
+    })
+    raise ArgumentError, 'Fail to fetch Tikr data' unless response.ok?
+
+    body = response.parsed_response
+    ltm = body['ltm'].group_by { |ltm| ltm[1].itself}
+    res = {}
+    current_year = Date.today.year
+    data_items_daily.each do |key, value|
+      if ltm[value].blank?
+        res[key] = []
+        next
+      end
+
+      year = current_year
+      count = 0
+      items = []
+      ltm[value].reverse.each do |daily|
+        break if count == 11
+        next unless (daily[7] == year && (daily[8] == 3 || current_year == daily[7] || daily[8] < 3 && (current_year - year) == count)) || (count == 0 && daily[7] == (year - 1) && daily[8] == 4)
+
+        items << daily[2].to_f
+        count+= 1
+        year-= 1
+      end
+
+      res[key] = items.reverse if items.present?
+    end
+
+    res
   end
 
   def data_items
     {
       current_ratio: 4030,
       roe: 4128,
-      bvps: 4020,
-      dividend: 2074,
-      # eps: 142, #9
+      de: 4034,
       net_income: 15, #16, 2150
       total_stock: 342, # 3217
       total_liabilities: 1276,
@@ -43,6 +78,17 @@ class TikrStockService < BaseService
       cash_from_investing: 2005,
       capex: 2021,
       cash_from_operation: 2006,
+      bvps: 4020,
+      # dividend: 2074,
+      eps: 142, #9
+    }
+  end
+
+  def data_items_daily
+    {
+      bvps: 4020,
+      eps: 142,
+      dividend: 3058
     }
   end
 
@@ -54,6 +100,18 @@ class TikrStockService < BaseService
       repid: 1,
       tid: @tid,
       v: 'v1'
+    }.to_json
+  end
+
+  def request_params_daily
+    {
+      auth: @access_token,
+      cid: @cid,
+      currency: 69,
+      ntmIds: [],
+      streetIds: [],
+      tid: @tid,
+      v: 'v2'
     }.to_json
   end
 

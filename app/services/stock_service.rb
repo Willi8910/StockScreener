@@ -170,8 +170,7 @@ class StockService < BaseService
       end
     end
     eps_expected_growth_rate = (((last_eps / @eps[start_idx])**(1.to_f / (@eps.size - 1 - start_idx))) - 1) * 100
-    bg_fair_price = last_eps.to_f * (growth_constant + eps_expected_growth_rate) * yield_obligation_government_10y /
-                    yield_obligation_corporate_10y
+    bg_fair_price = last_eps.to_f * (growth_constant + eps_expected_growth_rate) * yield_obligation_government_10y / yield_obligation_corporate_10y
     bg_fair_price = validate_price(bg_fair_price)
     bg_mos = calculate_mos(current_price, bg_fair_price)
 
