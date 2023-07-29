@@ -33,9 +33,12 @@ class StocksController < ApplicationController
     stock_result = History.where.not(data: nil).where(name: params[:stock]).first
     return render json: 'Stock is not exist', status: 404 if stock_result.nil?
     
+    @prices = StockServiceV2.new(params[:stock]).get_prices
+    @current_price = YahooStockService.get_curret_stock_prices([params[:stock]])["#{params[:stock]}.JK"]
     save_stock(JSON[stock_result.data])
     data = JSON[stock_result.data]
-    data["valuation"]["prices"] = { 'Price' => StockServiceV2.new(params[:stock]).get_prices}
+    data["valuation"]["prices"] = { 'Price' => @prices}
+    data['price']['Current Price'] = [@current_price] * 3
     render json: data
   end
 
@@ -89,8 +92,7 @@ class StocksController < ApplicationController
   def save_stock(stock_result)
     price_result = stock_result['price']['Fair Price']
     @stock = current_user.stocks.find_or_create_by(name: params[:stock])
-    value = @stock.previously_new_record? ? stock_result['price']['Current Price'][0] : @stock.value
-    @stock.update(value: value, pb_fair_value: price_result[1],
+    @stock.update(value: @current_price, pb_fair_value: price_result[1],
                   pe_fair_value: price_result[0],
                   benjamin_fair_value: price_result[2],
                   chart: stock_result['valuation']['bvps']['BVPS'].join(' '))
